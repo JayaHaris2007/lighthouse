@@ -3,7 +3,6 @@ import { FaTwitter, FaInstagram, FaLinkedin, FaYoutube } from 'react-icons/fa';
 export default function Footer() {
     return (
         <footer className="py-8 mt-auto">
-            <div className="container mx-auto px-4 max-w-7xl">
                 <div className="bg-navy-light/30 backdrop-blur-md border border-white/5 rounded-[2rem] p-8 md:p-12 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
 
                     {/* Decorative Top Glow */}
