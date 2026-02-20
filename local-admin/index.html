@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lighthouse Admin (Local)</title>
+    <style>
+        :root {
+            --navy: #0a192f;
+            --navy-light: #112240;
+            --slate: #8892b0;
+            --gold: #fbbf24;
+            --white: #e6f1ff;
+        }
+
+        body {
+            background-color: var(--navy);
+            color: var(--white);
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2 {
+            color: var(--gold);
+        }
+
+        .section {
+            background: var(--navy-light);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #233554;
+        }
+
+        form {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input,
+        textarea,
+        button {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #233554;
+            background: var(--navy);
+            color: var(--white);
+        }
+
+        button {
+            background: var(--gold);
+            color: var(--navy);
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #233554;
+        }
+
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Lighthouse Local Admin</h1>
+        <p>Manage content for the main website. Changes here reflect immediately safely stored in Firestore.</p>
+
+        <!-- MEMBERS SECTION -->
+        <div class="section">
+            <h2>Team Members</h2>
+            <form id="memberForm">
+                <input type="text" id="mName" placeholder="Name" required>
+                <input type="text" id="mRole" placeholder="Role" required>
+                <!-- Image Upload (Base64) -->
+                <div style="background:#233554; padding:10px; border-radius:4px;">
+                    <label style="font-size:12px; color:#8892b0;">Upload Profile Photo:</label>
+                    <input type="file" id="mFileInput" accept="image/*" style="border:none;">
+                    <input type="hidden" id="mImage">
+                </div>
+                <input type="text" id="mLinkedin" placeholder="LinkedIn URL (optional)">
+                <input type="text" id="mGithub" placeholder="GitHub URL (optional)">
+                <button type="submit">Add Member</button>
+            </form>
+            <div id="membersList">Loading...</div>
+        </div>
+
+        <!-- PROJECTS SECTION -->
+        <div class="section">
+            <h2>Projects</h2>
+            <form id="projectForm">
+                <input type="text" id="pTitle" placeholder="Project Title" required>
+                <input type="text" id="pCategory" placeholder="Category" required>
+                <input type="text" id="pTitle" placeholder="Project Title" required>
+                <input type="text" id="pCategory" placeholder="Category" required>
+                <input type="text" id="pTech" placeholder="Tech Stack (comma separated)">
+                <textarea id="pDesc" placeholder="Description" rows="3"></textarea>
+                <!-- Image Upload (Base64) -->
+                <div style="background:#233554; padding:10px; border-radius:4px;">
+                    <label style="font-size:12px; color:#8892b0;">Upload Project Screenshot:</label>
+                    <input type="file" id="pFileInput" accept="image/*" style="border:none;">
+                    <input type="hidden" id="pImage">
+                </div>
+                <button type="submit">Add Project</button>
+            </form>
+            <div id="projectsList">Loading...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJEbe8PXQXDBjCXnseN-bJ5kYNbzLqHsI",
+            authDomain: "light-house-b8fca.firebaseapp.com",
+            projectId: "light-house-b8fca",
+            storageBucket: "light-house-b8fca.firebasestorage.app",
+            messagingSenderId: "14725274842",
+            appId: "1:14725274842:web:891c568960e92fd74fd9e3",
+            measurementId: "G-8LHZ8N4SR6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // State for Editing
+        let editingMemberId = null;
+        let editingProjectId = null;
+        const cache = { team: {}, projects: {} };
+
+        // --- Helper: Compress Image to Base64 ---
+        const compressImage = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scaleSize;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        // Compress to JPEG at 70% quality
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                    img.onerror = (err) => reject(err);
+                };
+                reader.onerror = (err) => reject(err);
+            });
+        };
+
+        // --- Team Members ---
+        const memberForm = document.getElementById('memberForm');
+        const membersList = document.getElementById('membersList');
+        const memberBtn = memberForm.querySelector('button');
+
+        onSnapshot(query(collection(db, "team"), orderBy("createdAt", "desc")), (snapshot) => {
+            membersList.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                cache.team[doc.id] = data; // Store for editing
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        ${data.image ? `<img src="${data.image}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">` : ''}
+                        <div>
+                            <strong>${data.name}</strong> - ${data.role}
+                        </div>
+                    </div>
+                    <div>
+                        <button onclick="editMember('${doc.id}')" style="background:#3b82f6; margin-right:5px;">Edit</button>
+                        <button class="delete-btn" onclick="deleteItem('team', '${doc.id}')">Delete</button>
+                    </div>
+                `;
+                membersList.appendChild(div);
+            });
+            if (snapshot.empty) membersList.innerHTML = 'No members found.';
+        });
+
+        window.editMember = (id) => {
+            const data = cache.team[id];
+            if (!data) return;
+            document.getElementById('mName').value = data.name || '';
+            document.getElementById('mRole').value = data.role || '';
+            // Don't set file input value
+            document.getElementById('mLinkedin').value = data.linkedin || '';
+            document.getElementById('mGithub').value = data.github || '';
+            editingMemberId = id;
+            memberBtn.innerText = 'Update Member';
+            memberBtn.style.background = '#3b82f6';
+        };
+
+        memberForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('mFileInput');
+            let imageUrl = null;
+
+            try {
+                if (fileInput.files.length > 0) {
+                    imageUrl = await compressImage(fileInput.files[0]);
+                } else if (editingMemberId && cache.team[editingMemberId].image) {
+                    // Keep existing image if no new file
+                    imageUrl = cache.team[editingMemberId].image;
+                }
+
+                const payload = {
+                    name: document.getElementById('mName').value,
+                    role: document.getElementById('mRole').value,
+                    image: imageUrl, // Base64 string
+                    linkedin: document.getElementById('mLinkedin').value || null,
+                    github: document.getElementById('mGithub').value || null,
+                };
+
+                if (editingMemberId) {
+                    await updateDoc(doc(db, "team", editingMemberId), payload);
+                    alert('Member updated!');
+                    editingMemberId = null;
+                    memberBtn.innerText = 'Add Member';
+                    memberBtn.style.background = 'var(--gold)';
+                } else {
+                    payload.createdAt = serverTimestamp();
+                    await addDoc(collection(db, "team"), payload);
+                    alert('Member added!');
+                }
+                memberForm.reset();
+                if (fileInput) fileInput.value = ''; // Reset file input
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // --- Projects ---
+        const projectForm = document.getElementById('projectForm');
+        const projectsList = document.getElementById('projectsList');
+        const projectBtn = projectForm.querySelector('button');
+
+        onSnapshot(query(collection(db, "projects"), orderBy("createdAt", "desc")), (snapshot) => {
+            projectsList.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                cache.projects[doc.id] = data; // Store for editing
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                         ${data.image ? `<img src="${data.image}" style="width:60px; height:40px; border-radius:4px; object-fit:cover;">` : ''}
+                        <div>
+                            <strong>${data.title}</strong> (${data.category})
+                        </div>
+                    </div>
+                    <div>
+                        <button onclick="editProject('${doc.id}')" style="background:#3b82f6; margin-right:5px;">Edit</button>
+                        <button class="delete-btn" onclick="deleteItem('projects', '${doc.id}')">Delete</button>
+                    </div>
+                `;
+                projectsList.appendChild(div);
+            });
+            if (snapshot.empty) projectsList.innerHTML = 'No projects found.';
+        });
+
+        window.editProject = (id) => {
+            const data = cache.projects[id];
+            if (!data) return;
+            document.getElementById('pTitle').value = data.title || '';
+            document.getElementById('pCategory').value = data.category || '';
+            document.getElementById('pDesc').value = data.desc || '';
+            document.getElementById('pTech').value = data.tech ? data.tech.join(', ') : '';
+            // Don't set file input
+            editingProjectId = id;
+            projectBtn.innerText = 'Update Project';
+            projectBtn.style.background = '#3b82f6';
+        };
+
+        projectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('pFileInput');
+            let imageUrl = null;
+            const tech = document.getElementById('pTech').value.split(',').map(t => t.trim()).filter(Boolean);
+
+            try {
+                if (fileInput.files.length > 0) {
+                    imageUrl = await compressImage(fileInput.files[0]);
+                } else if (editingProjectId && cache.projects[editingProjectId].image) {
+                    imageUrl = cache.projects[editingProjectId].image;
+                }
+
+                const payload = {
+                    title: document.getElementById('pTitle').value,
+                    category: document.getElementById('pCategory').value,
+                    desc: document.getElementById('pDesc').value,
+                    tech: tech,
+                    image: imageUrl, // Base64
+                };
+
+                if (editingProjectId) {
+                    await updateDoc(doc(db, "projects", editingProjectId), payload);
+                    alert('Project updated!');
+                    editingProjectId = null;
+                    projectBtn.innerText = 'Add Project';
+                    projectBtn.style.background = 'var(--gold)';
+                } else {
+                    payload.createdAt = serverTimestamp();
+                    await addDoc(collection(db, "projects"), payload);
+                    alert('Project added!');
+                }
+                projectForm.reset();
+                if (fileInput) fileInput.value = '';
+            } catch (err) { alert('Error: ' + err.message); }
+        });
+
+        // Global Delete Helper
+        window.deleteItem = async (col, id) => {
+            if (!confirm('Delete this item?')) return;
+            try {
+                await deleteDoc(doc(db, col, id));
+            } catch (err) { alert('Error deleting: ' + err.message); }
+        };
+    </script>
+</body>
+
+</html>

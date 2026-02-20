@@ -1,23 +1,19 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
-// TODO: Replace with your actual Firebase project configuration
-// You can get this from the Firebase Console > Project Settings > General > Your apps
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAJEbe8PXQXDBjCXnseN-bJ5kYNbzLqHsI",
+    authDomain: "light-house-b8fca.firebaseapp.com",
+    projectId: "light-house-b8fca",
+    storageBucket: "light-house-b8fca.firebasestorage.app",
+    messagingSenderId: "14725274842",
+    appId: "1:14725274842:web:891c568960e92fd74fd9e3",
+    measurementId: "G-8LHZ8N4SR6"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
-
-export default app;
+export const auth = getAuth(app); // Exporting auth if needed for admin tool later

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaBars, FaTimes, FaGamepad } from 'react-icons/fa';
-import { useAuth } from '../context/AuthContext';
+// formatting import removed
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -9,7 +9,7 @@ export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const location = useLocation();
-    const { currentUser, logout } = useAuth();
+    // Auth hook removed
 
     // Handle scroll for sticky effect
     useEffect(() => {
@@ -79,22 +79,7 @@ export default function Navbar() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {currentUser ? (
-                            <div className="flex items-center gap-3">
-                                <Link to="/admin" className="hidden sm:block text-xs font-bold text-slate-300 hover:text-white uppercase tracking-wider">
-                                    Admin
-                                </Link>
-                                <button
-                                    onClick={logout}
-                                    className="px-5 py-2 border border-accent-red/50 bg-accent-red/10 text-accent-red text-xs uppercase tracking-widest rounded-full hover:bg-accent-red hover:text-white transition-all font-bold shadow-lg shadow-accent-red/5 hover:shadow-accent-red/20"
-                                >
-                                    Logout
-                                </button>
-                            </div>
-                        ) : (
-                            // Placeholder for consistent spacing if needed, or remove
-                            <div className="w-0"></div>
-                        )}
+                        {/* Auth buttons removed */}
 
                         {/* Mobile Menu Button */}
                         <button
@@ -131,11 +116,9 @@ export default function Navbar() {
                                         {link.name}
                                     </Link>
                                 ))}
-                                {currentUser && (
-                                    <Link to="/admin" onClick={() => setIsOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-wider text-slate-300 hover:bg-white/5 hover:text-white border-t border-white/5 mt-2">
-                                        Admin Dashboard
-                                    </Link>
-                                )}
+                                {
+                                    /* Admin link removed */
+                                }
                             </div>
                         </motion.div>
                     )}

@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
+// AuthProvider removed
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaGamepad } from 'react-icons/fa';
@@ -15,9 +15,7 @@ import About from './pages/About';
 import Services from './pages/Services';
 import Projects from './pages/Projects';
 import Contact from './pages/Contact';
-import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
+
 
 
 function SplashScreen({ onComplete }) {
@@ -35,7 +33,7 @@ function SplashScreen({ onComplete }) {
         transition={{ duration: 1 }}
         className="text-center"
       >
-        <div className="w-32 h-32 mx-auto mb-6 rounded-full border-4 border-gold/30 p-1 bg-navy-light shadow-2xl shadow-gold/20 overflow-hidden">
+        <div className="w-50 h-50 mx-auto mb-6 rounded-full border-4 border-gold/30 p-1 bg-navy-light shadow-2xl shadow-gold/20 overflow-hidden">
           <img src="/logo.png" alt="Logo" className="w-full h-full object-cover opacity-90" />
         </div>
         <h1 className="text-4xl text-gold font-heading font-bold tracking-widest uppercase">Lighthouse</h1>
@@ -50,36 +48,28 @@ function App() {
 
   return (
     <Router>
-      <AuthProvider>
-        <AnimatePresence>
-          {loading && <SplashScreen onComplete={() => setLoading(false)} />}
-        </AnimatePresence>
-        <div className="bg-navy text-white min-h-screen flex flex-col font-sans">
-          <Toaster position="top-center" toastOptions={{
-            style: {
-              background: '#112240',
-              color: '#ccd6f6',
-            },
-          }} />
-          <Navbar />
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </AuthProvider>
+      <AnimatePresence>
+        {loading && <SplashScreen onComplete={() => setLoading(false)} />}
+      </AnimatePresence>
+      <div className="bg-navy text-white min-h-screen flex flex-col font-sans">
+        <Toaster position="top-center" toastOptions={{
+          style: {
+            background: '#112240',
+            color: '#ccd6f6',
+          },
+        }} />
+        <Navbar />
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/contact" element={<Contact />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
     </Router>
   );
 }
